@@ -766,6 +766,11 @@
   html.wb-mobile ::-webkit-scrollbar { display: none; }
   html.wb-mobile .fixed.inset-0 { touch-action: pan-y; }
   html.wb-mobile button { min-height: 32px; }
+  /* Arvi planner on a phone: one milestone per row, full task titles, bigger type. */
+  html.wb-mobile .wb-plan-grid { grid-template-columns: 1fr !important; }
+  html.wb-mobile .wb-plan-task { white-space: normal !important; overflow: visible !important; font-size: 13px !important; line-height: 1.3; }
+  html.wb-mobile .wb-plan-grid .text-\[12px\] { font-size: 14px !important; }
+  html.wb-mobile .wb-plan-grid .text-\[11\.5px\] { font-size: 13px !important; }
 
   /* Preview pane slide-in (Add Widget drawer) */
   @keyframes previewPaneIn {
@@ -49609,7 +49614,7 @@ function ArviSpaceStep({
   }))), React.createElement("div", null, React.createElement("div", {
     className: "text-[10px] font-bold uppercase tracking-[0.12em] text-ink-tertiary mb-1.5"
   }, "Plan · ", draft.plan.length, " milestones · ", taskCount, " tasks"), React.createElement("div", {
-    className: "grid grid-cols-3 gap-2.5"
+    className: "grid grid-cols-3 gap-2.5 wb-plan-grid"
   }, draft.plan.map((m, mi) => React.createElement("div", {
     key: mi,
     className: "rounded-xl border border-edge-subtle bg-canvas/40 overflow-hidden"
@@ -49632,7 +49637,7 @@ function ArviSpaceStep({
       background: tk.type === 'risk' ? 'rgb(var(--state-danger-ink))' : tk.type === 'decision' ? 'rgb(var(--arvis-accent))' : 'rgb(var(--brand))'
     }
   }), React.createElement("span", {
-    className: "text-[11.5px] text-ink-primary truncate flex-1"
+    className: "text-[11.5px] text-ink-primary truncate flex-1 wb-plan-task"
   }, tk.title), React.createElement("span", {
     className: "text-[9.5px] font-bold text-ink-tertiary"
   }, tk.owner), React.createElement("button", {
@@ -49643,7 +49648,7 @@ function ArviSpaceStep({
   })))), m.tasks.length === 0 && React.createElement("div", {
     className: "px-3 py-2 text-[11px] text-ink-tertiary"
   }, "No tasks")))))), React.createElement("div", {
-    className: "grid grid-cols-3 gap-2.5"
+    className: "grid grid-cols-3 gap-2.5 wb-plan-grid"
   }, React.createElement("div", {
     className: "rounded-xl border border-edge-subtle bg-canvas/40 p-3"
   }, React.createElement("div", {
