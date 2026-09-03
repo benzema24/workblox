@@ -2,7 +2,11 @@
 <html lang="en" class="dark">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<meta name="theme-color" content="#0B0C10" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<script>window.__WB_FORCE_MOBILE = true;</script>
 <title>Workblox · v2 — refined design</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -754,6 +758,14 @@
     100% { box-shadow: 0 0 0 0 rgb(var(--arvis-accent) / 0.0); }
   }
   .wb-widget-flash > div { animation: wb-widget-flash 1.3s ease-out 2; border-radius: 16px; }
+
+  /* ── Mobile shell ──────────────────────────────────────────────── */
+  html.wb-mobile, html.wb-mobile body { overflow: hidden; height: 100%; -webkit-text-size-adjust: 100%; }
+  html.wb-mobile * { -webkit-tap-highlight-color: transparent; }
+  html.wb-mobile [data-tip]::after, html.wb-mobile [data-tip]::before { display: none !important; }
+  html.wb-mobile ::-webkit-scrollbar { display: none; }
+  html.wb-mobile .fixed.inset-0 { touch-action: pan-y; }
+  html.wb-mobile button { min-height: 32px; }
 
   /* Preview pane slide-in (Add Widget drawer) */
   @keyframes previewPaneIn {
@@ -103902,6 +103914,686 @@ function ComingSoonModule({
     className: "text-ink-secondary"
   }, "Spaces"), " for all work surfaces.")));
 }
+function useIsMobile() {
+  const calc = () => typeof window !== 'undefined' && (window.__WB_FORCE_MOBILE === true || window.innerWidth < 820);
+  const [m, setM] = useState(calc);
+  useEffect(() => {
+    const on = () => setM(calc());
+    window.addEventListener('resize', on);
+    return () => window.removeEventListener('resize', on);
+  }, []);
+  return m;
+}
+const MB_TABS = [{
+  id: 'day',
+  label: 'My Day',
+  icon: 'today'
+}, {
+  id: 'spaces',
+  label: 'Spaces',
+  icon: 'spaces'
+}, {
+  id: 'arvi',
+  label: 'Arvi',
+  icon: 'chat',
+  orb: true
+}, {
+  id: 'notes',
+  label: 'Notes',
+  icon: 'notes'
+}, {
+  id: 'more',
+  label: 'More',
+  icon: 'apps'
+}];
+function MobileBloxSheet({
+  blox,
+  space,
+  onClose
+}) {
+  const [, tick] = useState(0);
+  const b = (window.__wb_getAllBlox ? window.__wb_getAllBlox() : []).find(x => x.id === blox.id) || blox;
+  const acts = (window.__wb_activityFor ? window.__wb_activityFor(b.id) : []).slice(-5).reverse();
+  const set = patch => {
+    window.__wb_updateBlox && window.__wb_updateBlox(b.id, patch);
+    tick(x => x + 1);
+  };
+  const STATUS = [['todo', 'To do', 'rgb(var(--ink-tertiary))'], ['doing', 'Doing', 'rgb(var(--live))'], ['blocked', 'Blocked', 'rgb(var(--state-danger-ink))'], ['done', 'Done', 'rgb(var(--state-success-ink))']];
+  return React.createElement("div", {
+    className: "fixed inset-0 z-[600] flex flex-col justify-end",
+    style: {
+      background: 'rgba(0,0,0,0.55)'
+    },
+    onClick: onClose
+  }, React.createElement("div", {
+    className: "rounded-t-2xl bg-raised border-t border-edge-medium max-h-[88dvh] flex flex-col",
+    style: {
+      animation: 'fadeInUp 200ms cubic-bezier(0.2,0,0,1) both',
+      paddingBottom: 'env(safe-area-inset-bottom)'
+    },
+    onClick: e => e.stopPropagation()
+  }, React.createElement("div", {
+    className: "flex justify-center pt-2"
+  }, React.createElement("span", {
+    className: "w-10 h-1 rounded-full bg-edge-medium"
+  })), React.createElement("div", {
+    className: "px-4 pt-3 pb-2 flex items-start gap-3"
+  }, React.createElement("div", {
+    className: "min-w-0 flex-1"
+  }, React.createElement("div", {
+    className: "text-[10.5px] font-mono text-arvis-accent"
+  }, space ? bloxDisplayCode(b, space) : '', space ? ' · ' + space.name : ''), React.createElement("div", {
+    className: "text-[17px] font-semibold text-ink-primary leading-snug mt-0.5"
+  }, b.title)), React.createElement("button", {
+    onClick: onClose,
+    className: "w-9 h-9 grid place-items-center rounded-lg text-ink-tertiary hover:text-ink-primary"
+  }, React.createElement(I.xmark, {
+    n: 16
+  }))), React.createElement("div", {
+    className: "px-4 pb-4 overflow-auto space-y-4"
+  }, React.createElement("div", null, React.createElement("div", {
+    className: "text-[10px] font-bold uppercase tracking-[0.12em] text-ink-tertiary mb-1.5"
+  }, "Status"), React.createElement("div", {
+    className: "flex gap-1.5"
+  }, STATUS.map(([id, l, c]) => React.createElement("button", {
+    key: id,
+    onClick: () => set({
+      status: id
+    }),
+    className: `flex-1 h-10 rounded-xl text-[12.5px] font-semibold border transition-colors ${b.status === id ? 'text-ink-primary' : 'border-edge-subtle text-ink-tertiary'}`,
+    style: b.status === id ? {
+      background: c.replace(')', ' / 0.18)').replace('rgb(', 'rgb('),
+      borderColor: c,
+      color: c
+    } : undefined
+  }, l)))), React.createElement("div", {
+    className: "grid grid-cols-3 gap-2"
+  }, [['Owner', b.owner ? (PEOPLE_DIRECTORY[b.owner] || {}).name || b.owner : '—'], ['Due', b.due || '—'], ['Priority', b.priority || 'medium']].map(([l, v]) => React.createElement("div", {
+    key: l,
+    className: "rounded-xl bg-sunken border border-edge-subtle px-3 py-2"
+  }, React.createElement("div", {
+    className: "text-[9.5px] font-bold uppercase tracking-wider text-ink-tertiary"
+  }, l), React.createElement("div", {
+    className: "text-[12.5px] font-semibold text-ink-primary truncate capitalize mt-0.5"
+  }, v)))), (b.description || b.criteria) && React.createElement("p", {
+    className: "text-[13px] text-ink-secondary leading-relaxed"
+  }, b.description || b.criteria), React.createElement("div", {
+    className: "flex gap-2"
+  }, React.createElement("button", {
+    onClick: () => {
+      set({
+        due: 'today'
+      });
+    },
+    className: "flex-1 h-11 rounded-xl text-[13px] font-semibold bg-brand text-on-accent inline-flex items-center justify-center gap-1.5"
+  }, React.createElement(I.today, {
+    n: 14
+  }), " Put on My Day"), React.createElement("button", {
+    onClick: () => {
+      window.__wb_askArvi && window.__wb_askArvi('Tell me about “' + b.title + '”');
+      onClose();
+    },
+    className: "h-11 px-4 rounded-xl text-[13px] font-semibold border border-arvis-accent/40 text-arvis-accent inline-flex items-center gap-1.5"
+  }, React.createElement(I.bolt, {
+    n: 14
+  }), " Ask Arvi")), acts.length > 0 && React.createElement("div", null, React.createElement("div", {
+    className: "text-[10px] font-bold uppercase tracking-[0.12em] text-ink-tertiary mb-1.5"
+  }, "Recent activity"), React.createElement("div", {
+    className: "rounded-xl border border-edge-subtle divide-y divide-edge-subtle"
+  }, acts.map(e => React.createElement("div", {
+    key: e.id,
+    className: "px-3 py-2 text-[12px] text-ink-secondary"
+  }, React.createElement("span", {
+    className: "text-ink-primary font-medium"
+  }, wdFirst(e.actor)), " ", e.kind === 'comment-added' ? '“' + e.snippet + '”' : e.kind === 'status-change' ? 'moved to ' + e.after : e.kind.replace('-', ' '))))))));
+}
+function MobileSpace({
+  space,
+  onBack,
+  onOpenBlox
+}) {
+  const [seg, setSeg] = useState('overview');
+  const blox = window.__wb_getBloxForSpace ? window.__wb_getBloxForSpace(space.id) : [];
+  const live = wdLive(space);
+  const brief = wdLiveBrief(space, 'exec', 'today');
+  const vibe = SPACE_TYPE_VIBE[space.type] || SPACE_TYPE_VIBE.project;
+  const open = blox.filter(wdIsOpen);
+  const groups = [['doing', 'In progress'], ['blocked', 'Blocked'], ['todo', 'To do'], ['done', 'Done']];
+  const events = [];
+  blox.forEach(b => (window.__wb_activityFor ? window.__wb_activityFor(b.id) : []).forEach(e => events.push(Object.assign({}, e, {
+    blox: b
+  }))));
+  events.sort((a, b) => b.when - a.when);
+  const Row = ({
+    b,
+    why
+  }) => React.createElement("button", {
+    onClick: () => onOpenBlox(b),
+    className: "w-full flex items-center gap-3 px-4 py-3 text-left border-b border-edge-subtle last:border-0 active:bg-brand-soft/40"
+  }, React.createElement("span", {
+    className: "w-2 h-2 rounded-full flex-none",
+    style: {
+      background: b.status === 'blocked' ? 'rgb(var(--state-danger-ink))' : b.status === 'done' ? 'rgb(var(--state-success-ink))' : b.status === 'doing' ? 'rgb(var(--live))' : 'rgb(var(--brand))'
+    }
+  }), React.createElement("span", {
+    className: "min-w-0 flex-1"
+  }, React.createElement("span", {
+    className: `block text-[14px] leading-snug ${b.status === 'done' ? 'text-ink-tertiary line-through' : 'text-ink-primary'}`
+  }, b.title), React.createElement("span", {
+    className: "block text-[11.5px] text-ink-tertiary"
+  }, why || [b.type, b.owner && wdFirst(b.owner), b.due && 'due ' + b.due].filter(Boolean).join(' · '))), React.createElement("span", {
+    className: "text-ink-tertiary"
+  }, React.createElement(I.chevR, {
+    n: 14
+  })));
+  return React.createElement("div", {
+    className: "flex flex-col h-full"
+  }, React.createElement("div", {
+    className: "px-4 pt-2 pb-3 border-b border-edge-subtle"
+  }, React.createElement("button", {
+    onClick: onBack,
+    className: "inline-flex items-center gap-1 text-[13px] font-semibold text-ink-secondary mb-2"
+  }, React.createElement("span", {
+    className: "inline-flex",
+    style: {
+      transform: 'rotate(180deg)'
+    }
+  }, React.createElement(I.arrowR, {
+    n: 14
+  })), " Spaces"), React.createElement("div", {
+    className: "flex items-center gap-3"
+  }, React.createElement("span", {
+    className: "w-11 h-11 rounded-xl grid place-items-center text-white text-[13px] font-bold flex-none",
+    style: {
+      background: vibe.base
+    }
+  }, space.name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()), React.createElement("div", {
+    className: "min-w-0 flex-1"
+  }, React.createElement("div", {
+    className: "text-[18px] font-semibold text-ink-primary leading-tight truncate"
+  }, space.name), React.createElement("div", {
+    className: "text-[12px] text-ink-tertiary capitalize"
+  }, space.type, " · ", String(space.status || '').replace('-', ' '), space.health != null ? ' · health ' + space.health : '', " · ", open.length, " open"))), React.createElement("div", {
+    className: "flex gap-1 mt-3 rounded-xl bg-sunken border border-edge-subtle p-1"
+  }, [['overview', 'Overview'], ['work', 'Work'], ['people', 'People'], ['activity', 'Activity']].map(([id, l]) => React.createElement("button", {
+    key: id,
+    onClick: () => setSeg(id),
+    className: `flex-1 h-9 rounded-lg text-[12.5px] font-semibold ${seg === id ? 'bg-raised text-ink-primary shadow-e1' : 'text-ink-tertiary'}`
+  }, l)))), React.createElement("div", {
+    className: "flex-1 overflow-auto"
+  }, seg === 'overview' && React.createElement("div", {
+    className: "p-4 space-y-3"
+  }, React.createElement("div", {
+    className: "rounded-2xl border border-arvis-accent/30 bg-arvis-accent/5 p-4"
+  }, React.createElement("div", {
+    className: "flex items-center gap-2 mb-2"
+  }, React.createElement(ArvisPill, {
+    live: true
+  }), React.createElement("span", {
+    className: "text-[10px] font-bold uppercase tracking-[0.12em] text-arvis-accent"
+  }, "Brief")), React.createElement("div", {
+    className: "text-[15px] font-semibold text-ink-primary leading-snug"
+  }, brief.lead), React.createElement("div", {
+    className: "mt-2 space-y-1"
+  }, brief.bullets.map((x, i) => React.createElement("div", {
+    key: i,
+    className: "flex items-start gap-2 text-[12.5px] text-ink-secondary leading-snug"
+  }, React.createElement("span", {
+    className: `mt-1.5 w-1.5 h-1.5 rounded-full flex-none ${x.sev === 'danger' ? 'bg-state-danger-ink' : x.sev === 'warning' ? 'bg-state-warning-ink' : 'bg-state-success-ink'}`
+  }), React.createElement("span", {
+    dangerouslySetInnerHTML: {
+      __html: x.text
+    }
+  }))))), React.createElement("div", {
+    className: "grid grid-cols-4 gap-2"
+  }, [['Open', live.ai.counts.open, 'rgb(var(--brand))'], ['Due today', live.ai.counts.dueToday, 'rgb(var(--live))'], ['Overdue', live.ai.counts.overdue, 'rgb(var(--state-danger-ink))'], ['Blocked', live.ai.counts.blocked, 'rgb(var(--state-warning-ink))']].map(([l, v, c]) => React.createElement("div", {
+    key: l,
+    className: "rounded-xl bg-raised border border-edge-subtle px-2.5 py-2"
+  }, React.createElement("div", {
+    className: "text-[20px] font-extrabold tabular-nums leading-none",
+    style: {
+      color: c
+    }
+  }, v), React.createElement("div", {
+    className: "text-[9.5px] font-semibold text-ink-tertiary mt-1"
+  }, l)))), live.PRIORITIES.length > 0 && React.createElement("div", {
+    className: "rounded-2xl border border-edge-subtle bg-raised overflow-hidden"
+  }, React.createElement("div", {
+    className: "px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-ink-tertiary border-b border-edge-subtle"
+  }, "Priorities"), live.PRIORITIES.slice(0, 5).map(p => {
+    const b = blox.find(x => x.id === p.bloxId);
+    return b ? React.createElement(Row, {
+      key: p.id,
+      b: b,
+      why: p.consequence
+    }) : null;
+  })), live.WORKLOAD.length > 0 && React.createElement("div", {
+    className: "rounded-2xl border border-edge-subtle bg-raised overflow-hidden"
+  }, React.createElement("div", {
+    className: "px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-ink-tertiary border-b border-edge-subtle"
+  }, "Who's carrying it"), live.WORKLOAD.slice(0, 4).map(w => React.createElement("div", {
+    key: w.pid,
+    className: "flex items-center gap-3 px-4 py-2.5 border-b border-edge-subtle last:border-0"
+  }, React.createElement("span", {
+    className: "w-8 h-8 rounded-full bg-brand-soft text-brand text-[10px] font-bold grid place-items-center"
+  }, (PEOPLE_DIRECTORY[w.pid] || {}).initials || w.pid), React.createElement("span", {
+    className: "min-w-0 flex-1"
+  }, React.createElement("span", {
+    className: "block text-[13.5px] text-ink-primary"
+  }, w.name), React.createElement("span", {
+    className: "block text-[11px] text-ink-tertiary"
+  }, w.open, " open")), React.createElement("span", {
+    className: "w-20 h-1.5 rounded-full bg-sunken overflow-hidden"
+  }, React.createElement("span", {
+    className: "block h-full",
+    style: {
+      width: Math.min(100, w.load * 100) + '%',
+      background: w.load > 0.9 ? 'rgb(var(--state-danger-ink))' : 'rgb(var(--brand))'
+    }
+  })), React.createElement("span", {
+    className: "w-9 text-right font-mono text-[11px] text-ink-tertiary"
+  }, Math.round(w.load * 100), "%"))))), seg === 'work' && React.createElement("div", {
+    className: "p-4 space-y-3"
+  }, groups.map(([st, l]) => {
+    const rows = blox.filter(b => (b.status || 'todo') === st || st === 'todo' && ['open', 'upcoming'].indexOf(b.status) >= 0);
+    return rows.length ? React.createElement("div", {
+      key: st,
+      className: "rounded-2xl border border-edge-subtle bg-raised overflow-hidden"
+    }, React.createElement("div", {
+      className: "px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-ink-tertiary border-b border-edge-subtle"
+    }, l, " · ", rows.length), rows.slice(0, 12).map(b => React.createElement(Row, {
+      key: b.id,
+      b: b
+    }))) : null;
+  }), blox.length === 0 && React.createElement("div", {
+    className: "text-center text-[13px] text-ink-tertiary py-10"
+  }, "No work here yet.")), seg === 'people' && React.createElement("div", {
+    className: "p-4 rounded-2xl border border-edge-subtle bg-raised overflow-hidden"
+  }, live.WORKLOAD.map(w => React.createElement("div", {
+    key: w.pid,
+    className: "flex items-center gap-3 py-2.5 border-b border-edge-subtle last:border-0"
+  }, React.createElement("span", {
+    className: "w-9 h-9 rounded-full bg-brand-soft text-brand text-[11px] font-bold grid place-items-center"
+  }, (PEOPLE_DIRECTORY[w.pid] || {}).initials || w.pid), React.createElement("span", {
+    className: "min-w-0 flex-1"
+  }, React.createElement("span", {
+    className: "block text-[14px] font-medium text-ink-primary"
+  }, w.name), React.createElement("span", {
+    className: "block text-[11.5px] text-ink-tertiary"
+  }, w.role, " · ", w.open, " open", w.pid === space.owner ? ' · owner' : '')), React.createElement("span", {
+    className: "font-mono text-[12px]",
+    style: {
+      color: w.load > 0.9 ? 'rgb(var(--state-danger-ink))' : 'rgb(var(--ink-secondary))'
+    }
+  }, Math.round(w.load * 100), "%")))), seg === 'activity' && React.createElement("div", {
+    className: "p-4 rounded-2xl border border-edge-subtle bg-raised overflow-hidden"
+  }, events.length === 0 && React.createElement("div", {
+    className: "text-center text-[13px] text-ink-tertiary py-8"
+  }, "Nothing yet."), events.slice(0, 40).map(e => React.createElement("button", {
+    key: e.id,
+    onClick: () => onOpenBlox(e.blox),
+    className: "w-full flex items-start gap-3 py-2.5 text-left border-b border-edge-subtle last:border-0"
+  }, React.createElement("span", {
+    className: "w-8 h-8 rounded-full bg-brand-soft text-brand text-[10px] font-bold grid place-items-center flex-none"
+  }, (PEOPLE_DIRECTORY[e.actor] || {}).initials || e.actor), React.createElement("span", {
+    className: "min-w-0 flex-1 text-[13px] text-ink-secondary leading-snug"
+  }, React.createElement("span", {
+    className: "text-ink-primary font-medium"
+  }, wdFirst(e.actor)), " ", e.kind === 'status-change' ? React.createElement(React.Fragment, null, "moved ", React.createElement("b", {
+    className: "text-ink-primary"
+  }, e.blox.title), " to ", e.after) : e.kind === 'comment-added' ? React.createElement(React.Fragment, null, "commented on ", React.createElement("b", {
+    className: "text-ink-primary"
+  }, e.blox.title), ": “", e.snippet, "”") : React.createElement(React.Fragment, null, e.kind.replace('-', ' '), " · ", React.createElement("b", {
+    className: "text-ink-primary"
+  }, e.blox.title))), React.createElement("span", {
+    className: "text-[11px] text-ink-tertiary flex-none"
+  }, wbAgoShort(e.when)))))));
+}
+function MobileSpaces({
+  onOpen,
+  onCreate
+}) {
+  const [q, setQ] = useState('');
+  const spaces = arviSpaces().filter(s => !q.trim() || s.name.toLowerCase().indexOf(q.trim().toLowerCase()) >= 0);
+  const all = window.__wb_getAllBlox ? window.__wb_getAllBlox() : [];
+  const top = spaces.filter(s => !s.parent),
+    kids = spaces.filter(s => s.parent);
+  const Card = ({
+    s
+  }) => {
+    const sb = all.filter(b => b.__spaceId === s.id),
+      o = sb.filter(wdIsOpen).length,
+      bl = sb.filter(b => b.status === 'blocked').length;
+    const vibe = SPACE_TYPE_VIBE[s.type] || SPACE_TYPE_VIBE.project;
+    return React.createElement("button", {
+      onClick: () => onOpen(s),
+      className: "w-full flex items-center gap-3 px-4 py-3 text-left border-b border-edge-subtle last:border-0 active:bg-brand-soft/40"
+    }, React.createElement("span", {
+      className: "w-10 h-10 rounded-xl grid place-items-center text-white text-[12px] font-bold flex-none",
+      style: {
+        background: vibe.base
+      }
+    }, s.name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()), React.createElement("span", {
+      className: "min-w-0 flex-1"
+    }, React.createElement("span", {
+      className: "block text-[14.5px] font-medium text-ink-primary truncate"
+    }, s.name), React.createElement("span", {
+      className: "block text-[11.5px] text-ink-tertiary capitalize"
+    }, s.type, " · ", o, " open", bl ? React.createElement("span", {
+      className: "text-state-danger-ink"
+    }, " · ", bl, " blocked") : '')), React.createElement("span", {
+      className: `w-2 h-2 rounded-full ${s.status === 'at-risk' || s.status === 'off-track' ? 'bg-state-warning-ink' : 'bg-state-success-ink'}`
+    }), React.createElement("span", {
+      className: "text-ink-tertiary"
+    }, React.createElement(I.chevR, {
+      n: 14
+    })));
+  };
+  return React.createElement("div", {
+    className: "flex flex-col h-full"
+  }, React.createElement("div", {
+    className: "px-4 pt-2 pb-3 flex items-center gap-2"
+  }, React.createElement("div", {
+    className: "relative flex-1"
+  }, React.createElement("span", {
+    className: "absolute left-3 top-1/2 -translate-y-1/2 text-ink-tertiary"
+  }, React.createElement(I.search, {
+    n: 14
+  })), React.createElement("input", {
+    value: q,
+    onChange: e => setQ(e.target.value),
+    placeholder: "Search Spaces",
+    className: "w-full h-11 pl-9 pr-3 rounded-xl bg-sunken border border-edge-subtle text-[14px] text-ink-primary outline-none placeholder-ink-tertiary"
+  })), React.createElement("button", {
+    onClick: onCreate,
+    className: "w-11 h-11 rounded-xl bg-brand text-on-accent grid place-items-center shadow-e1"
+  }, React.createElement(I.plus, {
+    n: 18
+  }))), React.createElement("div", {
+    className: "flex-1 overflow-auto px-4 pb-4 space-y-3"
+  }, React.createElement("div", {
+    className: "rounded-2xl border border-edge-subtle bg-raised overflow-hidden"
+  }, top.map(s => React.createElement(Card, {
+    key: s.id,
+    s: s
+  }))), kids.length > 0 && React.createElement(React.Fragment, null, React.createElement("div", {
+    className: "text-[10px] font-bold uppercase tracking-[0.12em] text-ink-tertiary px-1"
+  }, "Inside other Spaces"), React.createElement("div", {
+    className: "rounded-2xl border border-edge-subtle bg-raised overflow-hidden"
+  }, kids.map(s => React.createElement(Card, {
+    key: s.id,
+    s: s
+  }))))));
+}
+function MobileNotifs({
+  onClose
+}) {
+  const items = wbNotifications();
+  const [, tick] = useState(0);
+  return React.createElement("div", {
+    className: "fixed inset-0 z-[600] bg-canvas flex flex-col",
+    style: {
+      animation: 'fadeIn 150ms ease both'
+    }
+  }, React.createElement("div", {
+    className: "flex items-center gap-2 px-4 pt-3 pb-3 border-b border-edge-subtle",
+    style: {
+      paddingTop: 'calc(env(safe-area-inset-top) + 12px)'
+    }
+  }, React.createElement("span", {
+    className: "text-[16px] font-semibold text-ink-primary"
+  }, "Notifications"), React.createElement("span", {
+    className: "text-[12px] text-ink-tertiary"
+  }, items.filter(n => !n.read).length, " unread"), React.createElement("button", {
+    onClick: () => {
+      wbNotifMarkRead(items.map(n => n.id));
+      tick(x => x + 1);
+    },
+    className: "ml-auto text-[12px] font-semibold text-ink-tertiary"
+  }, "Mark all read"), React.createElement("button", {
+    onClick: onClose,
+    className: "w-9 h-9 grid place-items-center rounded-lg text-ink-tertiary"
+  }, React.createElement(I.xmark, {
+    n: 16
+  }))), React.createElement("div", {
+    className: "flex-1 overflow-auto divide-y divide-edge-subtle"
+  }, items.map(n => React.createElement("button", {
+    key: n.id,
+    onClick: () => {
+      wbNotifMarkRead([n.id]);
+      if (n.bloxId && window.__wb_openBlox) window.__wb_openBlox(n.bloxId);
+      onClose();
+    },
+    className: `w-full flex items-start gap-3 px-4 py-3 text-left ${n.read ? 'opacity-60' : ''}`
+  }, React.createElement("span", {
+    className: `mt-1.5 w-2 h-2 rounded-full flex-none ${n.sev >= 3 ? 'bg-state-danger-ink' : n.sev === 2 ? 'bg-state-warning-ink' : 'bg-arvis-accent'}`
+  }), React.createElement("span", {
+    className: "min-w-0 flex-1"
+  }, React.createElement("span", {
+    className: "block text-[14px] text-ink-primary leading-snug"
+  }, n.title), React.createElement("span", {
+    className: "block text-[11.5px] text-ink-tertiary truncate mt-0.5"
+  }, n.sub)), React.createElement("span", {
+    className: "text-[11px] font-mono text-ink-tertiary flex-none"
+  }, wbAgoShort(n.when))))));
+}
+function MobileShell({
+  selectedBlox,
+  onCloseBlox,
+  onCreateSpace,
+  pushToast
+}) {
+  if (typeof window !== 'undefined') window.__WB_MOBILE_ACTIVE = true;
+  const [tab, setTab] = useState('day');
+  const [spaceId, setSpaceId] = useState(null);
+  const [more, setMore] = useState('cal');
+  const [creating, setCreating] = useState(false);
+  const [notifs, setNotifs] = useState(false);
+  const [, tick] = useState(0);
+  useEffect(() => {
+    document.documentElement.classList.add('dark');
+    document.documentElement.classList.remove('light');
+    document.documentElement.classList.add('wb-mobile');
+    return () => document.documentElement.classList.remove('wb-mobile');
+  }, []);
+  useEffect(() => {
+    window.__wb_navigateToSpace = id => {
+      setSpaceId(id);
+      setTab('spaces');
+    };
+    window.__wb_openAITab = t => {
+      const map = {
+        chat: 'arvi',
+        today: 'day',
+        notes: 'notes',
+        cal: 'more',
+        files: 'more',
+        apps: 'more'
+      };
+      if (map[t]) setTab(map[t]);
+      if (t === 'cal' || t === 'files' || t === 'apps') setMore(t);
+    };
+    window.__wb_openApp = id => {
+      setTab('more');
+      setMore('apps');
+      window.__wb_appsInitial = id;
+      tick(x => x + 1);
+    };
+    window.__wb_openCreateSpace = () => setCreating(true);
+    window.__wb_askArvi = q => {
+      window.__wb_mobileSeed = {
+        q: q,
+        ts: Date.now()
+      };
+      setTab('arvi');
+      tick(x => x + 1);
+    };
+  });
+  const space = spaceId ? arviSpaceById(spaceId) : null;
+  const unread = wbNotifUnread();
+  const title = tab === 'day' ? 'My Day' : tab === 'spaces' ? space ? space.name : 'Spaces' : tab === 'arvi' ? 'Arvi' : tab === 'notes' ? 'Quick Notes' : {
+    cal: 'Calendar',
+    files: 'Files',
+    apps: 'Apps'
+  }[more];
+  return React.createElement("div", {
+    className: "fixed inset-0 flex flex-col bg-canvas text-ink-primary overflow-hidden"
+  }, React.createElement("div", {
+    className: "flex-none flex items-center gap-2 px-4 pb-2 border-b border-edge-subtle bg-canvas/90",
+    style: {
+      paddingTop: 'calc(env(safe-area-inset-top) + 10px)',
+      backdropFilter: 'blur(8px)'
+    }
+  }, React.createElement("span", {
+    className: "w-7 h-7 rounded-lg grid place-items-center",
+    style: {
+      background: 'linear-gradient(135deg, rgb(var(--brand)), rgb(var(--arvis-accent)))'
+    }
+  }, React.createElement("span", {
+    className: "text-white text-[12px] font-black"
+  }, "W")), React.createElement("span", {
+    className: "text-[16px] font-semibold text-ink-primary truncate"
+  }, title), React.createElement("button", {
+    onClick: () => setNotifs(true),
+    className: "ml-auto relative w-10 h-10 grid place-items-center rounded-xl text-ink-secondary"
+  }, React.createElement(I.bell, {
+    n: 18
+  }), unread > 0 && React.createElement("span", {
+    className: "absolute top-1 right-1 min-w-[16px] h-[16px] px-1 rounded-full bg-state-danger-ink text-white text-[9px] font-bold grid place-items-center"
+  }, unread))), React.createElement("div", {
+    className: "flex-1 min-h-0 relative"
+  }, tab === 'day' && React.createElement("div", {
+    className: "absolute inset-0 overflow-auto"
+  }, React.createElement(TodayPanel, null)), tab === 'spaces' && (space ? React.createElement(MobileSpace, {
+    space: space,
+    onBack: () => setSpaceId(null),
+    onOpenBlox: b => window.__wb_openBlox && window.__wb_openBlox(b.id)
+  }) : React.createElement(MobileSpaces, {
+    onOpen: s => setSpaceId(s.id),
+    onCreate: () => setCreating(true)
+  })), tab === 'arvi' && React.createElement("div", {
+    className: "absolute inset-0"
+  }, React.createElement(ChatPanel, {
+    seed: window.__wb_mobileSeed || null
+  })), tab === 'notes' && React.createElement("div", {
+    className: "absolute inset-0 overflow-auto"
+  }, React.createElement(NotesPanel, null)), tab === 'more' && React.createElement("div", {
+    className: "absolute inset-0 flex flex-col"
+  }, React.createElement("div", {
+    className: "flex-none px-4 pt-2 pb-1"
+  }, React.createElement("div", {
+    className: "flex gap-1 rounded-xl bg-sunken border border-edge-subtle p-1"
+  }, [['cal', 'Calendar', 'cal'], ['files', 'Files', 'folder'], ['apps', 'Apps', 'apps']].map(([id, l, ic]) => {
+    const Ic = I[ic];
+    return React.createElement("button", {
+      key: id,
+      onClick: () => setMore(id),
+      className: `flex-1 h-9 rounded-lg text-[12.5px] font-semibold inline-flex items-center justify-center gap-1.5 ${more === id ? 'bg-raised text-ink-primary shadow-e1' : 'text-ink-tertiary'}`
+    }, React.createElement(Ic, {
+      n: 13
+    }), l);
+  }))), React.createElement("div", {
+    className: "flex-1 overflow-auto"
+  }, more === 'cal' && React.createElement(CalPanel, null), more === 'files' && React.createElement(FilesPanel, null), more === 'apps' && React.createElement(AppsPanel, null)))), React.createElement("div", {
+    className: "flex-none border-t border-edge-subtle bg-raised/95",
+    style: {
+      paddingBottom: 'env(safe-area-inset-bottom)',
+      backdropFilter: 'blur(8px)'
+    }
+  }, React.createElement("div", {
+    className: "grid grid-cols-5"
+  }, MB_TABS.map(t => {
+    const on = tab === t.id;
+    const Ic = I[t.icon] || I.apps;
+    return React.createElement("button", {
+      key: t.id,
+      onClick: () => {
+        setTab(t.id);
+        if (t.id === 'spaces') setSpaceId(null);
+      },
+      className: `h-[58px] flex flex-col items-center justify-center gap-1 ${on ? 'text-arvis-accent' : 'text-ink-tertiary'}`
+    }, t.orb ? React.createElement(ArvisVoiceOrb, {
+      size: 24,
+      active: on
+    }) : React.createElement(Ic, {
+      n: 20
+    }), React.createElement("span", {
+      className: "text-[10px] font-semibold"
+    }, t.label));
+  }))), creating && React.createElement("div", {
+    className: "fixed inset-0 z-[600] bg-canvas flex flex-col",
+    style: {
+      animation: 'fadeInUp 200ms cubic-bezier(0.2,0,0,1) both'
+    }
+  }, React.createElement("div", {
+    className: "flex items-center gap-2 px-4 pb-2 border-b border-edge-subtle",
+    style: {
+      paddingTop: 'calc(env(safe-area-inset-top) + 10px)'
+    }
+  }, React.createElement("span", {
+    className: "text-[16px] font-semibold text-ink-primary"
+  }, "New Space"), React.createElement("button", {
+    onClick: () => setCreating(false),
+    className: "ml-auto w-9 h-9 grid place-items-center rounded-lg text-ink-tertiary"
+  }, React.createElement(I.xmark, {
+    n: 16
+  }))), React.createElement("div", {
+    className: "flex-1 min-h-0 flex flex-col overflow-auto"
+  }, React.createElement(ArviSpaceStep, {
+    initialPrompt: "",
+    onManual: () => {
+      pushToast && pushToast('On the phone, describe it and Arvi builds it — the full form lives on desktop.', 'info');
+    },
+    onAdjust: d => {
+      const id = onCreateSpace({
+        name: d.name,
+        type: d.type,
+        description: d.description,
+        parent: null,
+        members: d.people,
+        color: null,
+        targetDate: d.targetDate,
+        tabs: d.tabs,
+        starters: [],
+        plan: d.plan,
+        risks: d.risks,
+        decisions: d.decisions
+      });
+      setCreating(false);
+      if (id) {
+        setSpaceId(id);
+        setTab('spaces');
+      }
+    },
+    onCreate: d => {
+      const id = onCreateSpace({
+        name: d.name,
+        type: d.type,
+        description: d.description,
+        parent: null,
+        members: d.people,
+        color: null,
+        targetDate: d.targetDate,
+        tabs: d.tabs,
+        starters: [],
+        plan: d.plan,
+        risks: d.risks,
+        decisions: d.decisions
+      });
+      setCreating(false);
+      if (id) {
+        setSpaceId(id);
+        setTab('spaces');
+      }
+    }
+  }))), notifs && React.createElement(MobileNotifs, {
+    onClose: () => setNotifs(false)
+  }), selectedBlox && React.createElement(MobileBloxSheet, {
+    blox: selectedBlox.blox,
+    space: selectedBlox.space,
+    onClose: onCloseBlox
+  }));
+}
 function App() {
   const [theme, setTheme] = useState('dark');
   const [themeId, setThemeId] = useState('clean');
@@ -105251,8 +105943,10 @@ function App() {
     setCreateSpaceOpen(null);
     openSpace(id);
     setCurrentSpaceTab('home');
+    window.setTimeout(() => {}, 0);
     const nBlox = spec.plan && spec.plan.length ? spec.plan.reduce((n, m) => n + 1 + (m.tasks || []).length, 0) + (spec.risks || []).length + (spec.decisions || []).length : (spec.starters || []).length;
     window.setTimeout(() => pushToast(`“${spec.name}” is live — ${nBlox} Blox, ${(spec.members || []).length} people, ${(spec.tabs || []).length} tab${(spec.tabs || []).length === 1 ? '' : 's'}.`, 'success'), 200);
+    return id;
   }
   function setSpaceCustomization(spaceId, patch) {
     setSpaceCustomizationsBySpace(m => ({
@@ -106840,7 +107534,7 @@ function App() {
     };
     window.__wb_addActivity = (id, evt) => addBloxActivity(id, evt);
     window.__wb_createSpace = createSpace;
-    window.__wb_openCreateSpace = arg => {
+    if (!window.__WB_MOBILE_ACTIVE) window.__wb_openCreateSpace = arg => {
       if (arg && typeof arg === 'object') setCreateSpaceOpen({
         type: null,
         prompt: true,
@@ -106851,9 +107545,9 @@ function App() {
       });
     };
     window.__wb_bump = () => setStoreTick(t => t + 1);
-    window.__wb_openAITab = openAITab;
+    if (!window.__WB_MOBILE_ACTIVE) window.__wb_openAITab = openAITab;
     window.__wb_askArvi = (q, label) => askArviAboutWidget(label || null, q);
-    window.__wb_openApp = id => {
+    if (!window.__WB_MOBILE_ACTIVE) window.__wb_openApp = id => {
       window.__wb_appsInitial = id;
       openAITab('apps', true);
       setStoreTick(t => t + 1);
@@ -106886,7 +107580,7 @@ function App() {
     window.__wb_bindSfAccount = bindSfAccount;
     window.__wb_dismissSfSuggestion = dismissSfSuggestion;
     window.__wb_navigateToResources = () => setActiveNav('resources');
-    window.__wb_navigateToSpace = id => {
+    if (!window.__WB_MOBILE_ACTIVE) window.__wb_navigateToSpace = id => {
       setActiveNav('spaces');
       setCurrentSpaceId(id);
     };
@@ -107752,6 +108446,18 @@ function App() {
     breadcrumb = [{
       label: NAV_LABELS[activeNav] || 'Home'
     }];
+  }
+  const isMobile = useIsMobile();
+  if (isMobile) {
+    return React.createElement(React.Fragment, null, React.createElement(MobileShell, {
+      selectedBlox: selectedBlox,
+      onCloseBlox: () => setSelectedBloxId(null),
+      onCreateSpace: createSpaceFromModal,
+      pushToast: pushToast
+    }), React.createElement(ToastContainer, {
+      toasts: toasts,
+      onDismiss: dismissToast
+    }));
   }
   return React.createElement("div", {
     className: "theme-shift h-screen flex flex-col bg-canvas text-ink-primary overflow-hidden"
